@@ -35,7 +35,7 @@ jobs:
             gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
             gcloud --quiet config set project $GOOGLE_PROJECT_ID
             gcloud auth configure-docker --quiet $IMAGE_HOST_ADDR
-            
+
             docker build -t "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
             docker push "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"
   deploy:
@@ -68,6 +68,7 @@ workflows:
           name: deploy-staging
           requires:
             - build-and-push
+          context: cloudSecrets
       # - approve-production:
       #     type: approval
       #     requires:
