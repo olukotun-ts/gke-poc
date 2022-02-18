@@ -23,14 +23,13 @@ jobs:
     executor: gcp-gcr/default
     steps:
       - checkout
-      - run: cat k8s/deployment.yml | envsubst > k8s/deployment-final.yml
       - gcp-gcr/gcr-auth
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $CLUSTER_NAME
           install-kubectl: true
       - kubernetes/create-or-update-resource:
           resource-name: deployment/$CIRCLE_PROJECT_REPONAME
-          resource-file-path: k8s/deployment-final.yml
+          resource-file-path: k8s/deployment.yml
           envsubst: true
           show-kubectl-command: true
           get-rollout-status: true
@@ -45,7 +44,7 @@ workflows:
       - deploy:
           name: deploy-staging
           requires:
-            - build
+            - build-and-push
       # - approve-production:
       #     type: approval
       #     requires:
