@@ -19,11 +19,11 @@ jobs:
       - gcp-gcr/gcr-auth
       - gcp-gcr/build-image:
           tag: $CIRCLE_SHA1
-          image: $CIRCLE_PROJECT_REPONAME
+          image: $IMAGE_REPO_NAME/$CIRCLE_PROJECT_REPONAME
           registry-url: $IMAGE_HOST_ADDR
       - gcp-gcr/push-image:
           tag: $CIRCLE_SHA1
-          image: $CIRCLE_PROJECT_REPONAME
+          image: $IMAGE_REPO_NAME/$CIRCLE_PROJECT_REPONAME
           registry-url: $IMAGE_HOST_ADDR
   deploy:
     docker:
