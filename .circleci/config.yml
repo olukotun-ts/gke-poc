@@ -1,0 +1,57 @@
+version: 2.1
+
+orbs:
+  kubernetes: circleci/kubernetes@1.3.0
+  gcp-gcr: circleci/gcp-gcr@0.14.1
+  gcp-gke: circleci/gcp-gke@1.4.0
+
+jobs:
+  build-and-push:
+    executor: gcp-gcr/default
+    steps:
+      - checkout
+      - gcp-gcr/gcr-auth
+      - gcp-gcr/build-image:
+          tag: $CIRCLE_SHA1
+          image: $CIRCLE_PROJECT_REPONAME
+          registry-url: $IMAGE_REPO_ADDR
+      - gcp-gcr/push-image:
+          tag: $CIRCLE_SHA1
+          image: $CIRCLE_PROJECT_REPONAME
+          registry-url: $IMAGE_REPO_ADDR
+  deploy:
+    executor: gcp-gcr/default
+    steps:
+      - checkout
+      - run: cat k8s/deployment.yml | envsubst > k8s/deployment-final.yml
+      - gcp-gcr/gcr-auth
+      - gcp-gke/update-kubeconfig-with-credentials:
+          cluster: $CLUSTER_NAME
+          install-kubectl: true
+      - kubernetes/create-or-update-resource:
+          resource-name: deployment/$CIRCLE_PROJECT_REPONAME
+          resource-file-path: k8s/deployment-final.yml
+          envsubst: true
+          show-kubectl-command: true
+          get-rollout-status: true
+          watch-rollout-status: true
+      - run: kubectl get service
+
+workflows:
+  version: 2
+  production_flow:
+    jobs:
+      - build-and-push
+      - deploy:
+          name: deploy-staging
+          requires:
+            - build
+      # - approve-production:
+      #     type: approval
+      #     requires:
+      #       - deploy-staging
+      # - deploy:
+      #     name: deploy-production
+      #     env: production
+      #     requires: 
+      #       - approve-production
