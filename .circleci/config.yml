@@ -14,8 +14,8 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      # - gcp-cli/install:
-      #     version: "372.0.0"
+      - gcp-cli/install:
+          version: "372.0.0"
       - gcp-gcr/gcr-auth
       - gcp-gcr/build-image:
           tag: $CIRCLE_SHA1
