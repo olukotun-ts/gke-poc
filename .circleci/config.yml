@@ -14,11 +14,11 @@ jobs:
       - gcp-gcr/build-image:
           tag: $CIRCLE_SHA1
           image: $CIRCLE_PROJECT_REPONAME
-          registry-url: $IMAGE_REPO_ADDR
+          registry-url: $IMAGE_HOST_ADDR
       - gcp-gcr/push-image:
           tag: $CIRCLE_SHA1
           image: $CIRCLE_PROJECT_REPONAME
-          registry-url: $IMAGE_REPO_ADDR
+          registry-url: $IMAGE_HOST_ADDR
   deploy:
     executor: gcp-gcr/default
     steps:
