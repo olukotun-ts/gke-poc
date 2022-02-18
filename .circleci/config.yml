@@ -40,7 +40,8 @@ workflows:
   version: 2
   production_flow:
     jobs:
-      - build-and-push
+      - build-and-push:
+          context: cloudSecrets
       - deploy:
           name: deploy-staging
           requires:
