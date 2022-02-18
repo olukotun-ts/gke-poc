@@ -16,7 +16,8 @@ jobs:
           docker_layer_caching: true
       - gcp-cli/install:
           version: "372.0.0"
-      - gcp-gcr/gcr-auth
+      # - gcp-gcr/gcr-auth
+      - run: gcloud auth configure-docker --quiet "${GOOGLE_COMPUTE_REGION}-docker.pkg.dev"
       - gcp-gcr/build-image:
           tag: $CIRCLE_SHA1
           image: $IMAGE_REPO_NAME/$CIRCLE_PROJECT_REPONAME
@@ -32,7 +33,8 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - gcp-gcr/gcr-auth
+      # - gcp-gcr/gcr-auth
+      - run: gcloud auth configure-docker --quiet "${GOOGLE_COMPUTE_REGION}-docker.pkg.dev"
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $CLUSTER_NAME
           install-kubectl: true
