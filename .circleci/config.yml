@@ -35,8 +35,10 @@ jobs:
             gcloud --quiet config set project $GOOGLE_PROJECT_ID
             gcloud auth configure-docker --quiet $IMAGE_HOST_ADDR
 
-            sudo apt-get update && sudo apt-get install gettext-base
-            DOCKER_BUILDKIT=0 docker build -f <(envsubst < Dockerfile) -t "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
+            docker build \
+              --build-arg IMAGE_TAG="${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
+              --tag "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
+            
             docker push "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"
   deploy:
     docker:
