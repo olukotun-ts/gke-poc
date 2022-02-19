@@ -18,11 +18,11 @@ jobs:
           version: "372.0.0"
       - gcp-gcr/gcr-auth
       - gcp-gcr/build-image:
-          tag: "$CIRCLE_SHA1, latest"
+          tag: $CIRCLE_SHA1
           image: $IMAGE_REPO_NAME/$CIRCLE_PROJECT_REPONAME
           registry-url: $IMAGE_HOST_ADDR
       - gcp-gcr/push-image:
-          tag: "$CIRCLE_SHA1, latest"
+          tag: $CIRCLE_SHA1
           image: $IMAGE_REPO_NAME/$CIRCLE_PROJECT_REPONAME
           registry-url: $IMAGE_HOST_ADDR
       # - run:
