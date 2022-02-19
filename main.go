@@ -46,6 +46,7 @@ func hello(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving request at: %s", r.URL.Path)
 
 	fmt.Fprintf(w, "Hello, world!\n")
+	fmt.Fprintf(w, "Image tag: %s\n", os.Getenv("IMAGE_TAG"))
 }
 
 // [END all]
