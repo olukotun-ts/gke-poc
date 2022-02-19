@@ -45,18 +45,25 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
+      - gcp-cli/install:
+          version: "372.0.0"
       - gcp-gcr/gcr-auth
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $CLUSTER_NAME
           install-kubectl: true
-      - kubernetes/create-or-update-resource:
-          resource-name: deployment/$CIRCLE_PROJECT_REPONAME
-          resource-file-path: k8s/deployment.yml
-          envsubst: true
-          show-kubectl-command: true
-          get-rollout-status: true
-          watch-rollout-status: true
-      - run: kubectl get service
+      - run:
+          name: Update resource
+          command: |
+            kubectl apply -f k8s/deployment.yml
+            kubectl get service
+      # - kubernetes/create-or-update-resource:
+      #     resource-name: deployment/$CIRCLE_PROJECT_REPONAME
+      #     resource-file-path: k8s/deployment.yml
+      #     envsubst: true
+      #     show-kubectl-command: true
+      #     get-rollout-status: true
+      #     watch-rollout-status: true
+      # - run: kubectl get service
 
 workflows:
   version: 2
