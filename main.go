@@ -45,12 +45,7 @@ func main() {
 func hello(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving request at: %s", r.URL.Path)
 
-	log.Printf("Cluster name: %s", os.Getenv("CLUSTER_NAME"))
-	log.Printf("Image tag: %s", os.Getenv("IMAGE_TAG"))
-
 	fmt.Fprintf(w, "Hello, world!\n")
-	fmt.Fprintf(w, "Cluster name: %s\n", os.Getenv("CLUSTER_NAME"))
-	fmt.Fprintf(w, "Image tag: %s\n", os.Getenv("IMAGE_TAG"))
 }
 
 // [END all]
