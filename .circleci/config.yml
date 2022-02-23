@@ -67,12 +67,13 @@ jobs:
           name: Update Helm chart repo
           command: |
             curl -u ${CIRCLE_TOKEN}: -X POST --header "Content-Type: application/json" \
-              -d "{
-                \"branch\": \"master\" 
-                \"parameters\": {
-                  \"appVersion\": \"${CIRCLE_SHA1}\"
+              --data "{
+                \"branch\":\"master\",
+                \"parameters\":{
+                  \"appVersion\":\"${CIRCLE_SHA1}\" 
                 }
-              }" https://circleci.com/api/v2/project/gh/olukotun-ts/gke-poc-chart/pipeline
+              }" \
+              https://circleci.com/api/v2/project/gh/olukotun-ts/gke-poc-chart/pipeline
               
 workflows:
   version: 2
