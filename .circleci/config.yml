@@ -60,7 +60,7 @@ jobs:
       - run:
           name: Update Helm chart repo
           command: |
-            curl -u ${CIRCLECI_TOKEN}: -X POST --header "Content-Type: application/json" \
+            curl -u ${CIRCLE_TOKEN}: -X POST --header "Content-Type: application/json" \
               -d '{
                 "branch": "master"
                 "parameters": {
