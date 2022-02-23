@@ -16,10 +16,16 @@ jobs:
           docker_layer_caching: true
       - gcp-cli/install:
           version: "372.0.0"
-      - gcp-cli/initialize
       - run:
           name: Build and push image
           command: |
+            echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
+
+            # Initialize gcloud CLI
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gcloud --quiet config set project $GOOGLE_PROJECT_ID
+            gcloud auth configure-docker --quiet $IMAGE_HOST_ADDR
+
             docker build \
               --build-arg IMAGE_TAG="${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
               --tag "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
