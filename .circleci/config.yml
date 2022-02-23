@@ -88,3 +88,4 @@ workflows:
       - update-chart-repo:
           requires:
             - deploy-staging
+          context: cloudSecrets
