@@ -16,25 +16,10 @@ jobs:
           docker_layer_caching: true
       - gcp-cli/install:
           version: "372.0.0"
-      # - gcp-gcr/gcr-auth
-      # - gcp-gcr/build-image:
-      #     tag: $CIRCLE_SHA1
-      #     image: $IMAGE_REPO_NAME/$CIRCLE_PROJECT_REPONAME
-      #     registry-url: $IMAGE_HOST_ADDR
-      # - gcp-gcr/push-image:
-      #     tag: $CIRCLE_SHA1
-      #     image: $IMAGE_REPO_NAME/$CIRCLE_PROJECT_REPONAME
-      #     registry-url: $IMAGE_HOST_ADDR
+      - gcp-cli/initialize
       - run:
           name: Build and push image
           command: |
-            echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
-
-            # Initialize gcloud CLI
-            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
-            gcloud --quiet config set project $GOOGLE_PROJECT_ID
-            gcloud auth configure-docker --quiet $IMAGE_HOST_ADDR
-
             docker build \
               --build-arg IMAGE_TAG="${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
               --tag "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
@@ -68,6 +53,20 @@ jobs:
       #     get-rollout-status: true
       #     watch-rollout-status: true
       # - run: kubectl get service
+  update-chart-repo:
+    docker:
+      - image: cimg/base:edge
+    steps:
+      - run:
+          name: Update Helm chart repo
+          command: |
+            curl -u ${CIRCLECI_TOKEN}: -X POST --header "Content-Type: application/json" \
+              -d '{
+                "branch": "master"
+                "parameters": {
+                  "appVersion": "${CIRCLE_SHA1}"
+                }
+              }' https://circleci.com/api/v2/project/gh/olukotun-ts/gke-poc-chart/pipeline
 
 workflows:
   version: 2
@@ -80,12 +79,6 @@ workflows:
           requires:
             - build-and-push
           context: cloudSecrets
-      # - approve-production:
-      #     type: approval
-      #     requires:
-      #       - deploy-staging
-      # - deploy:
-      #     name: deploy-production
-      #     env: production
-      #     requires: 
-      #       - approve-production
+      - update-chart-repo:
+          requires:
+            - deploy-staging
