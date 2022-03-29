@@ -31,6 +31,59 @@ jobs:
               --tag "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
             
             docker push "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"
+  build-and-push-oidc:
+    docker:
+      - image: cimg/base:edge
+    environment:
+      SUBJECT_TOKEN_TYPE: 
+      SUBJECT_TOKEN: $CIRCLE_OIDC_TOKEN
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - gcp-cli/install:
+          version: "372.0.0"
+      - run:
+          name: Authenticate with GCP
+          command: |
+            STS_TOKEN=$(curl -0 -X POST https://sts.googleapis.com/v1/token \
+              -H 'Content-Type: text/json; charset=utf-8' \
+              -d @- <<EOF | jq -r .access_token
+              {
+                  "audience"           : "//iam.googleapis.com/projects/193436206874/locations/global/workloadIdentityPools/oidc_poc/providers/circleci",
+                  "grantType"          : "urn:ietf:params:oauth:grant-type:token-exchange",
+                  "requestedTokenType" : "urn:ietf:params:oauth:token-type:access_token",
+                  "scope"              : "https://www.googleapis.com/auth/cloud-platform",
+                  "subjectTokenType"   : "urn:ietf:params:oauth:token-type:jwt",
+                  "subjectToken"       : "$CIRCLE_OIDC_TOKEN"
+              }
+            EOF)
+
+            ACCESS_TOKEN=$(curl -0 -X POST https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/gke-poc@olukotun-demo.iam.gserviceaccount.com:generateAccessToken \
+                -H "Content-Type: text/json; charset=utf-8" \
+                -H "Authorization: Bearer $STS_TOKEN" \
+                -d @- <<EOF | jq -r .accessToken
+                {
+                    "scope": [ "https://www.googleapis.com/auth/cloud-platform" ]
+                }
+            EOF)
+
+            echo $ACCESS_TOKEN >> $BASH_ENV
+      - run:
+          name: Build and push image
+          command: |
+            echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
+
+            # Initialize gcloud CLI
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gcloud --quiet config set project $GOOGLE_PROJECT_ID
+            gcloud auth configure-docker --quiet $IMAGE_HOST_ADDR
+
+            docker build \
+              --build-arg IMAGE_TAG="${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
+              --tag "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
+            
+            docker push "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"
   deploy:
     docker:
       - image: cimg/base:edge
@@ -80,7 +133,11 @@ workflows:
   production_flow:
     jobs:
       - build-and-push:
-          context: cloudSecrets
+          context: 
+            - cloudSecrets
+      - build-and-push-oidc:
+          context: 
+            - empty_context
       - deploy:
           name: deploy-staging
           requires:
