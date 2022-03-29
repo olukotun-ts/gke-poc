@@ -34,9 +34,6 @@ jobs:
   build-and-push-oidc:
     docker:
       - image: cimg/base:edge
-    environment:
-      SUBJECT_TOKEN_TYPE: 
-      SUBJECT_TOKEN: $CIRCLE_OIDC_TOKEN
     steps:
       - checkout
       - setup_remote_docker:
@@ -48,25 +45,21 @@ jobs:
           command: |
             STS_TOKEN=$(curl -0 -X POST https://sts.googleapis.com/v1/token \
               -H 'Content-Type: text/json; charset=utf-8' \
-              -d @- <<EOF | jq -r .access_token
-              {
-                  "audience"           : "//iam.googleapis.com/projects/193436206874/locations/global/workloadIdentityPools/oidc_poc/providers/circleci",
-                  "grantType"          : "urn:ietf:params:oauth:grant-type:token-exchange",
-                  "requestedTokenType" : "urn:ietf:params:oauth:token-type:access_token",
-                  "scope"              : "https://www.googleapis.com/auth/cloud-platform",
-                  "subjectTokenType"   : "urn:ietf:params:oauth:token-type:jwt",
-                  "subjectToken"       : "$CIRCLE_OIDC_TOKEN"
-              }
-            EOF)
+              -d "{
+                  \"audience\"           : \"//iam.googleapis.com/projects/193436206874/locations/global/workloadIdentityPools/oidc_poc/providers/circleci\",
+                  \"grantType\"          : \"urn:ietf:params:oauth:grant-type:token-exchange\",
+                  \"requestedTokenType\" : \"urn:ietf:params:oauth:token-type:access_token\",
+                  \"scope\"              : \"https://www.googleapis.com/auth/cloud-platform\",
+                  \"subjectTokenType\"   : \"urn:ietf:params:oauth:token-type:jwt\",
+                  \"subjectToken\"       : \"$CIRCLE_OIDC_TOKEN\"
+              }"
 
             ACCESS_TOKEN=$(curl -0 -X POST https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/gke-poc@olukotun-demo.iam.gserviceaccount.com:generateAccessToken \
                 -H "Content-Type: text/json; charset=utf-8" \
                 -H "Authorization: Bearer $STS_TOKEN" \
-                -d @- <<EOF | jq -r .accessToken
-                {
-                    "scope": [ "https://www.googleapis.com/auth/cloud-platform" ]
-                }
-            EOF)
+                -d "{
+                    \"scope\": [ \"https://www.googleapis.com/auth/cloud-platform\" ]
+                }"
 
             echo $ACCESS_TOKEN >> $BASH_ENV
       - run:
