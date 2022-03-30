@@ -7,6 +7,14 @@ orbs:
   gcp-gke: circleci/gcp-gke@1.4.0
 
 jobs:
+  sync-submodule:
+    docker:
+      - image: cimg/base:edge
+    steps:
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
+
   build-and-push:
     docker:
       - image: cimg/base:edge
@@ -127,6 +135,7 @@ workflows:
   version: 2
   production_flow:
     jobs:
+      - sync-submodule
       - build-and-push:
           context: 
             - cloudSecrets
