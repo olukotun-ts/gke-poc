@@ -1,0 +1,3 @@
+[submodule "gke-poc-chart"]
+	path = gke-poc-chart
+	url = git@github.com:olukotun-ts/gke-poc-chart.git
