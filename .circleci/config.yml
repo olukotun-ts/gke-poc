@@ -5,15 +5,20 @@ orbs:
   gcp-cli: circleci/gcp-cli@2.4.0
   gcp-gcr: circleci/gcp-gcr@0.14.1
   gcp-gke: circleci/gcp-gke@1.4.0
+  windows: circleci/windows@4.0.0
 
 jobs:
   sync-submodule:
-    docker:
-      - image: cimg/base:edge
+    executor: windows/default
     steps:
       - checkout
-      - run: git submodule sync
-      - run: git submodule update --init
+      - run:
+          name: Update Submodules
+          shell: bash.exe
+          command: | 
+            git submodule sync
+            git submodule update --init
+            ls
 
   build-and-push:
     docker:
