@@ -12,6 +12,8 @@ jobs:
     executor: windows/default
     steps:
       - checkout
+      - add_ssh_keys:
+          fingerprints: 77:84:da:ce:9c:35:dd:16:49:2d:15:55:95:0e:c4:3a
       - run:
           name: Update Submodules
           shell: bash.exe
