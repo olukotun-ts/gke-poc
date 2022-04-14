@@ -1,52 +1,29 @@
 version: 2.1
 
-orbs:
-  kubernetes: circleci/kubernetes@1.3.0
-  gcp-cli: circleci/gcp-cli@2.4.0
-  gcp-gcr: circleci/gcp-gcr@0.14.1
-  gcp-gke: circleci/gcp-gke@1.4.0
-  windows: circleci/windows@4.0.0
-
 jobs:
-  sync-submodule:
-    executor: windows/default
-    steps:
-      - checkout
-      - add_ssh_keys:
-          fingerprints: 77:84:da:ce:9c:35:dd:16:49:2d:15:55:95:0e:c4:3a
-      - run:
-          name: Update Submodules
-          shell: bash.exe
-          command: | 
-            git submodule sync
-            git submodule update --init
-            ls
-
-  build-and-push:
+  oidc-aws:
     docker:
       - image: cimg/base:edge
+    environment:
+      AWS_DEFAULT_REGION: us-west-1
+      AWS_ROLE_ARN: arn:aws:iam::660990364978:role/olukotun-oidc
     steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - gcp-cli/install:
-          version: "372.0.0"
       - run:
-          name: Build and push image
-          command: |
-            echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
-
-            # Initialize gcloud CLI
-            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
-            gcloud --quiet config set project $GOOGLE_PROJECT_ID
-            gcloud auth configure-docker --quiet $IMAGE_HOST_ADDR
-
-            docker build \
-              --build-arg IMAGE_TAG="${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
-              --tag "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
-            
-            docker push "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"
-  build-and-push-oidc:
+        name: authenticate-and-interact
+        command: |
+          # use the OpenID Connect token to obtain AWS credentials
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN \<<< \
+            $(aws sts assume-role-with-web-identity \
+             --role-arn ${AWS_ROLE_ARN} \
+             --role-session-name "CircleCI-${CIRCLE_WORKFLOW_ID}-${CIRCLE_JOB}" \
+             --web-identity-token $CIRCLE_OIDC_TOKEN \
+             --duration-seconds 3600 \
+             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+             --output text)
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          # interact with AWS
+          aws sts get-caller-identity
+  oidc-gcp:
     docker:
       - image: cimg/base:edge
     steps:
@@ -105,67 +82,11 @@ jobs:
               --tag "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" .
             
             docker push "${IMAGE_HOST_ADDR}/${GOOGLE_PROJECT_ID}/${IMAGE_REPO_NAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"
-  deploy:
-    docker:
-      - image: cimg/base:edge
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - gcp-cli/install:
-          version: "372.0.0"
-      - gcp-gcr/gcr-auth
-      - gcp-gke/update-kubeconfig-with-credentials:
-          cluster: $CLUSTER_NAME
-          install-kubectl: true
-      - run:
-          name: Update resource
-          command: |
-            sudo apt-get update && sudo apt-get install gettext-base
-            cat k8s/deployment.yml | envsubst > k8s/deployment-final.yml
-            kubectl apply -f k8s/deployment-final.yml
-            kubectl get service
-      # - kubernetes/create-or-update-resource:
-      #     resource-name: deployment/$CIRCLE_PROJECT_REPONAME
-      #     resource-file-path: k8s/deployment.yml
-      #     envsubst: true
-      #     show-kubectl-command: true
-      #     get-rollout-status: true
-      #     watch-rollout-status: true
-      # - run: kubectl get service
-  update-chart-repo:
-    docker:
-      - image: cimg/base:edge
-    steps:
-      - run:
-          name: Update Helm chart repo
-          command: |
-            curl -u ${CIRCLE_TOKEN}: -X POST --header "Content-Type: application/json" \
-              --data "{
-                \"branch\":\"master\",
-                \"parameters\":{
-                  \"appVersion\":\"${CIRCLE_SHA1}\" 
-                }
-              }" \
-              https://circleci.com/api/v2/project/gh/olukotun-ts/gke-poc-chart/pipeline
-              
+        
 workflows:
   version: 2
-  production_flow:
+  oidc_poc:
     jobs:
-      - sync-submodule
-      - build-and-push:
+      - oidc-aws:
           context: 
             - cloudSecrets
-      - build-and-push-oidc:
-          context: 
-            - empty_context
-      - deploy:
-          name: deploy-staging
-          requires:
-            - build-and-push
-          context: cloudSecrets
-      - update-chart-repo:
-          requires:
-            - deploy-staging
-          context: cloudSecrets
