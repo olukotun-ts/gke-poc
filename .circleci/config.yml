@@ -3,10 +3,10 @@ version: 2.1
 jobs:
   oidc-aws:
     docker:
-      - image: cimg/base:edge
+      - image: amazon/aws-cli
     environment:
-      AWS_DEFAULT_REGION: us-west-1
-      AWS_ROLE_ARN: arn:aws:iam::660990364978:role/olukotun-oidc
+      AWS_DEFAULT_REGION: <your AWS region here>
+      AWS_ROLE_ARN: <your role ARN here>
     steps:
       - run:
           name: authenticate-and-interact
