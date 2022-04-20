@@ -6,7 +6,7 @@ jobs:
       - image: amazon/aws-cli
     environment:
       AWS_DEFAULT_REGION: us-west-1
-      AWS_ROLE_ARN: arn:aws:iam::660990364978:role/olukotun-oidc
+      AWS_ROLE_ARN: arn:aws:iam::906212366989:role/oidc-s3
     steps:
       - run:
           name: authenticate-and-interact
